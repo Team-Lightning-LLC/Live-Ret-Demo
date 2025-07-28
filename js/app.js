@@ -189,122 +189,95 @@ class AssistantAI {
   }
   
   acceptClient(clientId) {
-    this.hideClientBannerWithAnimation();
+    this.hideClientBanner();
     this.startNewConsultation(clientId, true);
   }
   
   declineClient() {
-    this.hideClientBannerWithAnimation();
-    this.showDeclineMessage();
+    this.hideClientBanner();
   }
   
-  hideClientBannerWithAnimation() {
-    const banner = document.getElementById('client-banner');
-    banner.style.transform = 'translateY(-100%)';
-    banner.style.opacity = '0';
-    setTimeout(() => {
-      banner.style.display = 'none';
-    }, 300);
+  startBlankConsultation() {
+    const blankConsultation = {
+      id: `chat-${Date.now()}-blank`,
+      clientId: 'blank',
+      client: clients['blank'],
+      startTime: new Date(),
+      messages: [],
+      isActive: true
+    };
+    
+    ChatManager.chats.set(blankConsultation.id, blankConsultation);
+    ChatManager.addToSidebar(blankConsultation);
+    ChatManager.activateConsultation(blankConsultation.id);
   }
   
-  showDeclineMessage() {
-    const welcomeContent = document.querySelector('.welcome-content');
-    const originalContent = welcomeContent.innerHTML;
+  startNewConsultation(clientId, isAccepted = false) {
+    const consultation = ChatManager.createConsultation(clientId);
+    if (!consultation) return;
     
-    welcomeContent.innerHTML = `
-      <div class="decline-message">
-        <div class="decline-icon">
-          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-          </svg>
-        </div>
-        <h2>Client Consultation Declined</h2>
-        <p>The consultation request has been declined and the client has been notified.</p>
-      </div>
-    `;
+    ChatManager.addToSidebar(consultation);
+    ChatManager.activateConsultation(consultation.id);
+  }
+  
+  sendMessage() {
+    const messageInput = document.getElementById('message-input');
+    const message = messageInput.value.trim();
     
-setTimeout(() => {
-     welcomeContent.innerHTML = originalContent;
-   }, 3000);
- }
- 
- // Create blank consultation
- startBlankConsultation() {
-   const blankConsultation = {
-     id: `consultation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-     clientId: 'blank',
-     client: {
-       id: 'blank',
-       name: 'New Client',
-       company: 'Company Name',
-       accountType: 'Account Type',
-       avatar: 'NC'
-     },
-     startTime: new Date(),
-     messages: [],
-     isActive: true
-   };
-   
-   ChatManager.chats.set(blankConsultation.id, blankConsultation);
-   ChatManager.addToSidebar(blankConsultation);
-   ChatManager.activateConsultation(blankConsultation.id);
- }
- 
- startNewConsultation(clientId, isAccepted = false) {
-   const consultation = ChatManager.createConsultation(clientId);
-   if (!consultation) return;
-   
-   ChatManager.addToSidebar(consultation);
-   ChatManager.activateConsultation(consultation.id);
- }
- 
- sendMessage() {
-   const messageInput = document.getElementById('message-input');
-   const message = messageInput.value.trim();
-   
-   if (!message || !ChatManager.activeChat) return;
-   
-   ChatManager.addMessage(ChatManager.activeChat.id, message, true);
-   
-   messageInput.value = '';
-   this.autoResizeTextarea(messageInput);
-   
-   ChatManager.processAIResponse(message, ChatManager.activeChat.clientId);
- }
- 
- autoResizeTextarea(textarea) {
-   textarea.style.height = 'auto';
-   textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
- }
- 
- showCallModal() {
-   document.getElementById('call-modal').classList.add('active');
- }
- 
- hideCallModal() {
-   document.getElementById('call-modal').classList.remove('active');
- }
- 
- showExportModal() {
-   const summary = ChatManager.generateExportSummary();
-   document.getElementById('export-summary').textContent = summary;
-   document.getElementById('export-modal').classList.add('active');
- }
- 
- hideExportModal() {
-   document.getElementById('export-modal').classList.remove('active');
- }
- 
- hideAllModals() {
-   document.querySelectorAll('.modal-overlay').forEach(modal => {
-     modal.classList.remove('active');
-   });
- }
+    if (!message || !ChatManager.activeChat) return;
+    
+    // Disable send button temporarily
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.disabled = true;
+    sendBtn.classList.add('loading');
+    
+    // Add user message
+    ChatManager.addMessage(ChatManager.activeChat.id, message, true);
+    
+    // Clear input
+    messageInput.value = '';
+    this.autoResizeTextarea(messageInput);
+    
+    // Process AI response
+    ChatManager.processAIResponse(message, ChatManager.activeChat.clientId)
+      .finally(() => {
+        // Re-enable send button
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('loading');
+      });
+  }
+  
+  autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+  }
+  
+  showCallModal() {
+    document.getElementById('call-modal').classList.add('active');
+  }
+  
+  hideCallModal() {
+    document.getElementById('call-modal').classList.remove('active');
+  }
+  
+  showExportModal() {
+    const summary = ChatManager.generateExportSummary();
+    document.getElementById('export-summary').textContent = summary;
+    document.getElementById('export-modal').classList.add('active');
+  }
+  
+  hideExportModal() {
+    document.getElementById('export-modal').classList.remove('active');
+  }
+  
+  hideAllModals() {
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+      modal.classList.remove('active');
+    });
+  }
 }
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
- new AssistantAI();
+  new AssistantAI();
 });
