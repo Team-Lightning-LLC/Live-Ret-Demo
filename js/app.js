@@ -1,54 +1,58 @@
-// Main Application Controller
+// Main application controller
 class AssistantAI {
   constructor() {
-    this.initializeApp();
-    this.bindEvents();
-    this.loadExistingConsultations();
+    this.init();
     this.startIncomingCallTimer();
+    this.addExistingConsultations();
   }
   
-  initializeApp() {
-    console.log('AssistantAI initialized');
+  init() {
+    this.bindEvents();
     this.showWelcomeState();
-    
-    // Check API connection periodically
-    setInterval(() => {
-      ChatManager.checkApiConnection();
-    }, 30000); // Check every 30 seconds
-  }
-  
-  acceptClient(clientId) {
     this.hideClientBanner();
-    this.startNewConsultation(clientId, true);
   }
   
-  declineClient() {
-    this.hideClientBanner();
-    
-    // Show decline message
-    const welcomeContent = document.querySelector('.welcome-content');
-    welcomeContent.innerHTML = `
-      <div class="decline-message">
-        <div class="decline-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-          </svg>
-        </div>
-        <h2>Consultation Declined</h2>
-        <p>The consultation request has been declined.</p>
-      </div>
-    `;
-    
-    // Reset after 3 seconds
-    setTimeout(() => {
-      location.reload();
-    }, 3000);
-  }
-  
-  loadExistingConsultations() {
-    // Create Dr. Chen's consultation (older)
+  // Add existing consultations to sidebar
+  addExistingConsultations() {
+    // Add Jessica Holmes consultation (most recent)
+    const holmesConsultation = ChatManager.createConsultation('jessica-holmes');
+    if (holmesConsultation) {
+      holmesConsultation.startTime = new Date(Date.now() - 25 * 60 * 1000); // 25 minutes ago
+      holmesConsultation.messages = [
+        {
+          id: 'msg-jh-1',
+          content: "Client's uncle died yesterday. and left them his 403b in full and they need ALL the money RIGHT NOW for his funeral but also want to put some of it in a 401k they have. The IRS agent said something about a death exception for the 59.5 rule and they can triple their contributions under the CARES act? They have power of attorney for their uncle's estate so are saying they can legally do whatever they want with their money and they should be able to get it all today because it is theirs.",
+          isUser: true,
+          timestamp: new Date(Date.now() - 24 * 60 * 1000)
+        },
+        {
+          id: 'msg-jh-2',
+          content: aiResponses['jessica-holmes']['death-benefits'],
+          isUser: false,
+          timestamp: new Date(Date.now() - 23 * 60 * 1000)
+        },
+        {
+          id: 'msg-jh-3',
+          content: "And they wanted to move a portion of that 403b into a 401k?",
+          isUser: true,
+          timestamp: new Date(Date.now() - 22 * 60 * 1000)
+        },
+        {
+          id: 'msg-jh-4',
+          content: aiResponses['jessica-holmes']['rollover'],
+          isUser: false,
+          timestamp: new Date(Date.now() - 21 * 60 * 1000)
+        }
+      ];
+      
+      const chatItem = ChatManager.addToSidebar(holmesConsultation);
+      const previewEl = chatItem.querySelector('.chat-preview');
+      if (previewEl) {
+        previewEl.textContent = 'Death benefits inquiry - urgent';
+      }
+    }
+
+    // Add Dr. Chen's consultation (older)
     const chenConsultation = ChatManager.createConsultation('eleanor-chen');
     if (chenConsultation) {
       chenConsultation.startTime = new Date(Date.now() - 45 * 60 * 1000); // 45 minutes ago
@@ -181,28 +185,25 @@ class AssistantAI {
   
   hideClientBanner() {
     const banner = document.getElementById('client-banner');
-    banner.style.transform = 'translateY(-100%)';
-    banner.style.opacity = '0';
-    
-    setTimeout(() => {
-      banner.style.display = 'none';
-    }, 300);
+    banner.style.display = 'none';
+  }
+  
+  acceptClient(clientId) {
+    this.hideClientBanner();
+    this.startNewConsultation(clientId, true);
+  }
+  
+  declineClient() {
+    this.hideClientBanner();
   }
   
   startBlankConsultation() {
-    // Create a blank consultation without a specific client
     const blankConsultation = {
-      id: `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      clientId: 'manual',
-      client: {
-        id: 'manual',
-        name: 'Manual Entry',
-        company: 'Enter client details',
-        accountType: 'To be determined',
-        avatar: 'ME'
-      },
-      messages: [],
+      id: `chat-${Date.now()}-blank`,
+      clientId: 'blank',
+      client: clients['blank'],
       startTime: new Date(),
+      messages: [],
       isActive: true
     };
     
@@ -225,12 +226,25 @@ class AssistantAI {
     
     if (!message || !ChatManager.activeChat) return;
     
+    // Disable send button temporarily
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.disabled = true;
+    sendBtn.classList.add('loading');
+    
+    // Add user message
     ChatManager.addMessage(ChatManager.activeChat.id, message, true);
     
+    // Clear input
     messageInput.value = '';
     this.autoResizeTextarea(messageInput);
     
-    ChatManager.processAIResponse(message, ChatManager.activeChat.clientId);
+    // Process AI response
+    ChatManager.processAIResponse(message, ChatManager.activeChat.clientId)
+      .finally(() => {
+        // Re-enable send button
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('loading');
+      });
   }
   
   autoResizeTextarea(textarea) {
