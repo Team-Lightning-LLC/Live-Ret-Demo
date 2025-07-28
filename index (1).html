@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AssistantAI - Intelligent Financial Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+        </div>
+        <span class="logo-text">AssistantAI</span>
+      </div>
+    </div>
+    
+    <button class="new-chat-btn" id="manual-new-chat-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      New Consultation
+    </button>
+    
+    <div class="chat-list" id="chat-list">
+      <!-- Chat items will be added here dynamically -->
+    </div>
+    
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar">FA</div>
+        <div class="user-info">
+          <div class="user-name">Financial Advisor</div>
+          <div class="user-status">
+            <div class="status-dot"></div>
+            Available
+          </div>
+        </div>
+      </div>
+      
+      <button class="settings-btn" id="settings-btn" title="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Incoming Client Banner -->
+    <div class="client-banner" id="client-banner">
+      <div class="banner-content">
+        <div class="client-indicator">
+          <div class="pulse-dot"></div>
+          <span>Incoming Client</span>
+        </div>
+        <div class="client-preview">
+          <div class="client-avatar">JJ</div>
+          <div class="client-details">
+            <h3>James Jackson</h3>
+            <p>Texas University • UT Saver TSA 403(b)</p>
+          </div>
+        </div>
+      </div>
+      <div class="banner-actions">
+        <button class="action-btn accept-btn" id="accept-client-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Accept Consultation
+        </button>
+        <button class="action-btn decline-btn" id="decline-client-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Decline
+        </button>
+      </div>
+    </div>
+    
+    <!-- Welcome State -->
+<div class="welcome-state" id="welcome-state">
+  <div class="welcome-content">
+    <div class="welcome-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+        <path d="M2 17l10 5 10-5"></path>
+        <path d="M2 12l10 5 10-5"></path>
+      </svg>
+    </div>
+    <h2>Welcome to AssistantAI</h2>
+    <p class="subtitle">Your enterprise clarity engine.</p>
+    <p class="description">AssistantAI transforms retirement plan complexity into confident, real-time resolution. It connects live client data, internal documents, and policy knowledge into structured responses reps can trust.</p>
+    
+    <div class="value-grid">
+      <div class="value-item">
+        <span class="value-number">Relevant</span>
+        <div class="value-label">Context</div>
+        <div class="value-description">Client's unique details securely injected into each chat</div>
+      </div>
+      <div class="value-item">
+        <span class="value-number">Structured</span>
+        <div class="value-label">Guidance</div>
+        <div class="value-description">Direct answers and compliant processes in every response.</div>
+      </div>
+      <div class="value-item">
+        <span class="value-number">Clear</span>
+        <div class="value-label">Citations</div>
+        <div class="value-description">Every answer backed by your SOPs and plan documents</div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    <!-- Chat Interface -->
+    <div class="chat-interface" id="chat-interface" style="display: none;">
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div class="header-left">
+          <div class="client-info">
+            <div class="client-avatar-small" id="header-avatar">JJ</div>
+            <div class="client-meta">
+              <h3 id="header-name">James Jackson</h3>
+              <p id="header-details">Texas University • UT Saver TSA 403(b)</p>
+            </div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="header-btn" id="export-btn" title="Export Consultation">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </button>
+          <button class="header-btn" id="call-btn" title="Voice Call">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Chat Messages -->
+      <div class="chat-messages" id="chat-messages">
+        <!-- Messages will be added here dynamically -->
+      </div>
+      
+      <!-- Message Input -->
+      <div class="message-input-container">
+        <div class="input-wrapper">
+          <textarea 
+            class="message-input" 
+            id="message-input" 
+            placeholder="Ask about retirement plans, contributions, or client-specific questions..."></textarea>
+          <button class="send-btn" id="send-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <div class="input-suggestions">
+          <button class="suggestion-btn" data-suggestion="How much can I borrow from my 403b?">
+            Plan matching structure
+          </button>
+          <button class="suggestion-btn" data-suggestion="What are the annual contribution limits for this plan type?">
+            Contribution limits
+          </button>
+          <button class="suggestion-btn" data-suggestion="What investment options are available in this plan?">
+            Investment options
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Call Modal -->
+  <div class="modal-overlay" id="call-modal">
+    <div class="call-modal">
+      <div class="call-header">
+        <div class="caller-info">
+          <div class="caller-avatar">JJ</div>
+          <div class="caller-details">
+            <h3>James Jackson</h3>
+            <div class="call-status">
+              <div class="status-indicator connected"></div>
+              <span>Connected</span>
+            </div>
+          </div>
+        </div>
+        <div class="call-duration">04:32</div>
+      </div>
+      <div class="call-controls">
+        <button class="call-control mute-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+        <button class="call-control end-call-btn" id="end-call-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Export Modal -->
+  <div class="modal-overlay" id="export-modal">
+    <div class="export-modal">
+      <div class="modal-header">
+        <h3>Export Consultation Summary</h3>
+        <button class="close-btn" id="close-export-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-content">
+        <div class="export-preview">
+          <h4>Consultation Summary</h4>
+          <div class="summary-text" id="export-summary">
+            <!-- Summary will be generated here -->
+          </div>
+        </div>
+        <div class="export-options">
+          <div class="option-group">
+            <label class="checkbox-label">
+              <input type="checkbox" checked>
+              <span class="checkmark"></span>
+              Include client information
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" checked>
+              <span class="checkmark"></span>
+              Include conversation transcript
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" checked>
+              <span class="checkmark"></span>
+              Include AI recommendations
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-export-btn">Cancel</button>
+        <button class="btn btn-primary">Export to CRM</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
