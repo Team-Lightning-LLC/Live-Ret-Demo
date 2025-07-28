@@ -1,66 +1,39 @@
-// Chat Manager - Handles all chat functionality
+// Chat management functionality
 const ChatManager = {
   chats: new Map(),
   activeChat: null,
-  isApiConnected: false,
-  
-  // Initialize chat manager
-  init() {
-    this.checkApiConnection();
-  },
-  
-  // Check if API is connected
-  async checkApiConnection() {
-    if (window.AssistantAPI) {
-      this.isApiConnected = await AssistantAPI.checkConnection();
-      this.updateApiStatus(this.isApiConnected);
-    }
-  },
-  
-  // Update API status indicator
-  updateApiStatus(isConnected) {
-    const statusEl = document.getElementById('api-status');
-    const statusTextEl = document.getElementById('api-status-text');
-    
-    if (statusEl && statusTextEl) {
-      if (isConnected) {
-        statusEl.className = 'api-status live';
-        statusTextEl.textContent = 'Live Mode - Connected to Vertesia';
-      } else {
-        statusEl.className = 'api-status demo';
-        statusTextEl.textContent = 'Demo Mode - Using Local Data';
-      }
-    }
-  },
+  typingInterval: null,
   
   // Create new consultation
   createConsultation(clientId) {
-    const client = clientsData[clientId];
+    const client = clients[clientId];
     if (!client) return null;
     
+    const chatId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const consultation = {
-      id: `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: chatId,
       clientId: clientId,
       client: client,
-      messages: [],
       startTime: new Date(),
+      messages: [],
       isActive: true
     };
     
-    this.chats.set(consultation.id, consultation);
+    this.chats.set(chatId, consultation);
     return consultation;
   },
   
-  // Add chat to sidebar
+  // Add consultation to sidebar
   addToSidebar(consultation) {
-    const chatList = document.getElementById('chat-list');
-    if (!chatList) return;
-    
+    const chatList = document.querySelector('.chat-list');
     const chatItem = document.createElement('div');
     chatItem.className = 'chat-item';
     chatItem.dataset.chatId = consultation.id;
     
-    const timeAgo = this.getTimeAgo(consultation.startTime);
+    const isApiConnected = vertesiaAPI.isConfigured();
+    if (isApiConnected) {
+      chatItem.classList.add('api-connected');
+    }
     
     chatItem.innerHTML = `
       <div class="chat-avatar">${consultation.client.avatar}</div>
@@ -68,7 +41,7 @@ const ChatManager = {
         <div class="chat-name">${consultation.client.name}</div>
         <div class="chat-preview">New consultation started</div>
       </div>
-      <div class="chat-time">${timeAgo}</div>
+      <div class="chat-time">${this.formatTime(consultation.startTime)}</div>
     `;
     
     chatItem.addEventListener('click', () => {
@@ -76,33 +49,7 @@ const ChatManager = {
     });
     
     chatList.insertBefore(chatItem, chatList.firstChild);
-    
     return chatItem;
-  },
-  
-  // Get time ago string
-  getTimeAgo(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
-  },
-  
-  // Format timestamp
-  formatTime(date) {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
   },
   
   // Activate consultation
@@ -126,6 +73,9 @@ const ChatManager = {
     
     // Update sidebar selection
     this.updateSidebarSelection(chatId);
+    
+    // Check API status
+    this.checkApiStatus();
   },
   
   // Show chat interface
@@ -153,10 +103,31 @@ const ChatManager = {
     if (activeItem) {
       activeItem.classList.add('active');
     }
+  },
+  
+  // Check API status and show indicator
+  checkApiStatus() {
+    const hasApiKey = vertesiaAPI.isConfigured();
     
-    // Add API connected indicator if connected
-    if (this.isApiConnected && activeItem) {
-      activeItem.classList.add('api-connected');
+    // Remove existing status if any
+    const existingStatus = document.querySelector('.api-status');
+    if (existingStatus) {
+      existingStatus.remove();
+    }
+    
+    const statusEl = document.createElement('div');
+    statusEl.className = `api-status ${hasApiKey ? 'live' : 'demo'}`;
+    statusEl.innerHTML = `
+      <div class="status-dot ${hasApiKey ? 'connected' : 'disconnected'}"></div>
+      ${hasApiKey ? 'API Connected' : 'Demo Mode - Add API Key'}
+    `;
+    
+    // Insert at top of chat messages
+    const messagesContainer = document.getElementById('chat-messages');
+    if (messagesContainer.firstChild) {
+      messagesContainer.insertBefore(statusEl, messagesContainer.firstChild);
+    } else {
+      messagesContainer.appendChild(statusEl);
     }
   },
   
@@ -249,7 +220,10 @@ const ChatManager = {
     const messagesContainer = document.getElementById('chat-messages');
     messagesContainer.innerHTML = '';
     
-    // Add client card first
+    // Add API status first
+    this.checkApiStatus();
+    
+    // Add client card
     if (this.activeChat?.client) {
       const clientCardEl = document.createElement('div');
       clientCardEl.innerHTML = this.renderClientCard(this.activeChat.client);
@@ -264,35 +238,86 @@ const ChatManager = {
     this.scrollToBottom();
   },
   
-  // Process AI response with cycling typing indicator
+  // Process AI response with API integration
   async processAIResponse(userMessage, clientId) {
     if (!this.activeChat) return;
     
-    // Show cycling typing indicator
-    await this.showCyclingTypingIndicator();
-    
-    let aiResponse = null;
-    
-    // Try API first if connected
-    if (this.isApiConnected && window.AssistantAPI) {
-      const apiResponse = await AssistantAPI.sendMessage(
-        userMessage,
-        this.activeChat.id,
-        clientId
-      );
+    try {
+      // Show cycling typing indicator
+      await this.showCyclingTypingIndicator();
       
-      if (apiResponse && apiResponse.aiResponse) {
-        aiResponse = apiResponse.aiResponse;
+      // Get client context
+      const client = this.activeChat.client;
+      
+      // Check if API is configured
+      if (vertesiaAPI.isConfigured()) {
+        // Call Vertesia API
+        const response = await vertesiaAPI.executeAgent(userMessage, client);
+        
+        // Format response as HTML
+        const formattedResponse = this.formatAIResponse(response.content || response.message || response);
+        
+        // Add AI response to chat
+        this.addMessage(this.activeChat.id, formattedResponse, false);
+      } else {
+        // Use fallback response
+        const fallbackResponse = generateAIResponse(userMessage, clientId);
+        this.addMessage(this.activeChat.id, fallbackResponse, false);
       }
+    } catch (error) {
+      console.error('Error processing AI response:', error);
+      
+      // Fallback to local response if API fails
+      const fallbackResponse = this.getFallbackResponse(error);
+      this.addMessage(this.activeChat.id, fallbackResponse, false);
+    }
+  },
+  
+  // Format AI response from Vertesia
+  formatAIResponse(content) {
+    // If content is already HTML formatted, return as is
+    if (content.includes('<div class="ai-response">')) {
+      return content;
     }
     
-    // Fallback to demo data if API fails or not connected
-    if (!aiResponse) {
-      aiResponse = generateAIResponse(userMessage, clientId);
+    // Parse the response and format it with proper HTML structure
+    return `
+      <div class="ai-response">
+        <div class="response-header">
+          <strong>Answer</strong>
+        </div>
+        <div class="response-content">
+          ${content}
+        </div>
+      </div>
+    `;
+  },
+  
+  // Get fallback response for errors
+  getFallbackResponse(error) {
+    const isApiKeyMissing = !vertesiaAPI.isConfigured();
+    
+    if (isApiKeyMissing) {
+      return `
+        <div class="ai-response error-response">
+          <div class="response-header">
+            <strong>Configuration Required</strong>
+          </div>
+          <p>The Vertesia API is not configured. Please add your API key and agent ID in vertesia-api.js to enable live responses.</p>
+          <p>Currently using demo responses. Contact your administrator to enable the live API connection.</p>
+        </div>
+      `;
     }
     
-    // Add the AI response to chat
-    this.addMessage(this.activeChat.id, aiResponse, false);
+    return `
+      <div class="ai-response error-response">
+        <div class="response-header">
+          <strong>Connection Error</strong>
+        </div>
+        <p>I'm having trouble connecting to the AI service. Please check your internet connection and try again.</p>
+        <p>Error details: ${error.message}</p>
+      </div>
+    `;
   },
   
   // Show cycling typing indicator with promise-based timing
@@ -316,7 +341,7 @@ const ChatManager = {
             <span></span>
             <span></span>
           </div>
-          <div class="typing-text" id="typing-text">AssistantAI is retrieving client details...</div>
+          <div class="typing-text" id="typing-text">Converge is retrieving client details...</div>
         </div>
       `;
       
@@ -325,10 +350,10 @@ const ChatManager = {
       
       // Define the typing steps
       const typingSteps = [
-        "AssistantAI is retrieving client details...",
-        "AssistantAI is researching scenario...",
-        "AssistantAI is identifying relevant information...",
-        "AssistantAI is compiling response..."
+        "Converge is retrieving client details...",
+        "Converge is researching scenario...",
+        "Converge is identifying relevant information...",
+        "Converge is compiling response..."
       ];
       
       let currentStep = 0;
@@ -339,17 +364,35 @@ const ChatManager = {
       
       // Create interval to cycle through steps
       const interval = setInterval(() => {
-        if (currentStep < typingSteps.length) {
+        if (currentStep < typingSteps.length && typingTextEl) {
           typingTextEl.textContent = typingSteps[currentStep];
           currentStep++;
         } else {
-          // Clear interval and remove typing indicator
+          // All steps complete
           clearInterval(interval);
-          typingEl.remove();
+          this.hideTypingIndicator();
           resolve();
         }
-      }, 1500); // Change step every 1.5 seconds
+      }, 2500); // 2.5 seconds per step
+      
+      // Store interval for cleanup
+      this.typingInterval = interval;
     });
+  },
+  
+  // Hide typing indicator
+  hideTypingIndicator() {
+    // Clear any existing interval
+    if (this.typingInterval) {
+      clearInterval(this.typingInterval);
+      this.typingInterval = null;
+    }
+    
+    // Remove the typing indicator element
+    const typingEl = document.getElementById('typing-indicator');
+    if (typingEl) {
+      typingEl.remove();
+    }
   },
   
   // Scroll to bottom of messages
@@ -358,51 +401,42 @@ const ChatManager = {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   },
   
+  // Format time
+  formatTime(date) {
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  },
+  
   // Generate export summary
   generateExportSummary() {
-    if (!this.activeChat) return 'No active consultation to export.';
+    if (!this.activeChat) return '';
     
     const client = this.activeChat.client;
     const messages = this.activeChat.messages;
+    const startTime = this.formatTime(this.activeChat.startTime);
     
     let summary = `CONSULTATION SUMMARY\n\n`;
-    summary += `Client: ${client.name}\n`;
+    summary += `Client: ${client.name} (${client.clientId || 'N/A'})\n`;
     summary += `Company: ${client.company}\n`;
     summary += `Account Type: ${client.accountType}\n`;
     summary += `Date: ${new Date().toLocaleDateString()}\n`;
-    summary += `Duration: ${this.getConsultationDuration()}\n\n`;
+    summary += `Time: ${startTime}\n\n`;
     
-    summary += `DISCUSSION TOPICS:\n`;
+    summary += `CONVERSATION TRANSCRIPT:\n`;
     messages.forEach((msg, index) => {
-      if (msg.isUser && index > 0) {
-        summary += `- ${msg.content}\n`;
-      }
+      const speaker = msg.isUser ? 'ADVISOR' : 'ASSISTANT';
+      const cleanContent = msg.content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+      summary += `${index + 1}. ${speaker}: ${cleanContent}\n\n`;
     });
     
-    summary += `\nRECOMMENDATIONS PROVIDED:\n`;
-    summary += `- Reviewed account eligibility and options\n`;
-    summary += `- Discussed regulatory compliance requirements\n`;
-    summary += `- Provided relevant documentation references\n`;
+    summary += `NEXT STEPS:\n`;
+    summary += `- Follow up on any pending questions\n`;
+    summary += `- Update client records in CRM\n`;
+    summary += `- Schedule additional consultations if needed\n`;
     
     return summary;
-  },
-  
-  // Get consultation duration
-  getConsultationDuration() {
-    if (!this.activeChat) return '0 minutes';
-    
-    const now = new Date();
-    const start = this.activeChat.startTime;
-    const diffMs = now - start;
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 60) return `${diffMins} minutes`;
-    
-    const hours = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
-    return `${hours} hour${hours > 1 ? 's' : ''} ${mins} minutes`;
   }
 };
-
-// Initialize when loaded
-ChatManager.init();
