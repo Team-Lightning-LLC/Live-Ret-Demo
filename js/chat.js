@@ -1,7 +1,7 @@
-// Chat management functionality
+// Chat management system
 const ChatManager = {
-  chats: new Map(),
   activeChat: null,
+  chats: new Map(),
   typingInterval: null,
   
   // Create new consultation
@@ -9,7 +9,7 @@ const ChatManager = {
     const client = clients[clientId];
     if (!client) return null;
     
-    const chatId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const chatId = `consultation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const consultation = {
       id: chatId,
       clientId: clientId,
@@ -25,29 +25,30 @@ const ChatManager = {
   
   // Add consultation to sidebar
   addToSidebar(consultation) {
-    const chatList = document.querySelector('.chat-list');
+    const chatList = document.getElementById('chat-list');
     const chatItem = document.createElement('div');
     chatItem.className = 'chat-item';
     chatItem.dataset.chatId = consultation.id;
     
-    const isApiConnected = vertesiaAPI.isConfigured();
-    if (isApiConnected) {
-      chatItem.classList.add('api-connected');
-    }
+    const timeStr = this.formatTime(consultation.startTime);
     
     chatItem.innerHTML = `
       <div class="chat-avatar">${consultation.client.avatar}</div>
       <div class="chat-details">
         <div class="chat-name">${consultation.client.name}</div>
-        <div class="chat-preview">New consultation started</div>
+        <div class="chat-preview">Consultation in progress...</div>
       </div>
-      <div class="chat-time">${this.formatTime(consultation.startTime)}</div>
+      <div class="chat-time">${timeStr}</div>
     `;
     
-    chatItem.addEventListener('click', () => {
+    // Add click event listener
+    chatItem.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       this.activateConsultation(consultation.id);
     });
     
+    // Add to beginning of list (newest first)
     chatList.insertBefore(chatItem, chatList.firstChild);
     return chatItem;
   },
@@ -73,9 +74,6 @@ const ChatManager = {
     
     // Update sidebar selection
     this.updateSidebarSelection(chatId);
-    
-    // Check API status
-    this.checkApiStatus();
   },
   
   // Show chat interface
@@ -102,32 +100,6 @@ const ChatManager = {
     const activeItem = document.querySelector(`[data-chat-id="${chatId}"]`);
     if (activeItem) {
       activeItem.classList.add('active');
-    }
-  },
-  
-  // Check API status and show indicator
-  checkApiStatus() {
-    const hasApiKey = vertesiaAPI.isConfigured();
-    
-    // Remove existing status if any
-    const existingStatus = document.querySelector('.api-status');
-    if (existingStatus) {
-      existingStatus.remove();
-    }
-    
-    const statusEl = document.createElement('div');
-    statusEl.className = `api-status ${hasApiKey ? 'live' : 'demo'}`;
-    statusEl.innerHTML = `
-      <div class="status-dot ${hasApiKey ? 'connected' : 'disconnected'}"></div>
-      ${hasApiKey ? 'API Connected' : 'Demo Mode - Add API Key'}
-    `;
-    
-    // Insert at top of chat messages
-    const messagesContainer = document.getElementById('chat-messages');
-    if (messagesContainer.firstChild) {
-      messagesContainer.insertBefore(statusEl, messagesContainer.firstChild);
-    } else {
-      messagesContainer.appendChild(statusEl);
     }
   },
   
@@ -220,10 +192,7 @@ const ChatManager = {
     const messagesContainer = document.getElementById('chat-messages');
     messagesContainer.innerHTML = '';
     
-    // Add API status first
-    this.checkApiStatus();
-    
-    // Add client card
+    // Add client card first
     if (this.activeChat?.client) {
       const clientCardEl = document.createElement('div');
       clientCardEl.innerHTML = this.renderClientCard(this.activeChat.client);
@@ -238,86 +207,16 @@ const ChatManager = {
     this.scrollToBottom();
   },
   
-  // Process AI response with API integration
+  // Process AI response with cycling typing indicator
   async processAIResponse(userMessage, clientId) {
     if (!this.activeChat) return;
     
-    try {
-      // Show cycling typing indicator
-      await this.showCyclingTypingIndicator();
-      
-      // Get client context
-      const client = this.activeChat.client;
-      
-      // Check if API is configured
-      if (vertesiaAPI.isConfigured()) {
-        // Call Vertesia API
-        const response = await vertesiaAPI.executeAgent(userMessage, client);
-        
-        // Format response as HTML
-        const formattedResponse = this.formatAIResponse(response.content || response.message || response);
-        
-        // Add AI response to chat
-        this.addMessage(this.activeChat.id, formattedResponse, false);
-      } else {
-        // Use fallback response
-        const fallbackResponse = generateAIResponse(userMessage, clientId);
-        this.addMessage(this.activeChat.id, fallbackResponse, false);
-      }
-    } catch (error) {
-      console.error('Error processing AI response:', error);
-      
-      // Fallback to local response if API fails
-      const fallbackResponse = this.getFallbackResponse(error);
-      this.addMessage(this.activeChat.id, fallbackResponse, false);
-    }
-  },
-  
-  // Format AI response from Vertesia
-  formatAIResponse(content) {
-    // If content is already HTML formatted, return as is
-    if (content.includes('<div class="ai-response">')) {
-      return content;
-    }
+    // Show cycling typing indicator
+    await this.showCyclingTypingIndicator();
     
-    // Parse the response and format it with proper HTML structure
-    return `
-      <div class="ai-response">
-        <div class="response-header">
-          <strong>Answer</strong>
-        </div>
-        <div class="response-content">
-          ${content}
-        </div>
-      </div>
-    `;
-  },
-  
-  // Get fallback response for errors
-  getFallbackResponse(error) {
-    const isApiKeyMissing = !vertesiaAPI.isConfigured();
-    
-    if (isApiKeyMissing) {
-      return `
-        <div class="ai-response error-response">
-          <div class="response-header">
-            <strong>Configuration Required</strong>
-          </div>
-          <p>The Vertesia API is not configured. Please add your API key and agent ID in vertesia-api.js to enable live responses.</p>
-          <p>Currently using demo responses. Contact your administrator to enable the live API connection.</p>
-        </div>
-      `;
-    }
-    
-    return `
-      <div class="ai-response error-response">
-        <div class="response-header">
-          <strong>Connection Error</strong>
-        </div>
-        <p>I'm having trouble connecting to the AI service. Please check your internet connection and try again.</p>
-        <p>Error details: ${error.message}</p>
-      </div>
-    `;
+    // Generate and add AI response
+    const aiResponse = generateAIResponse(userMessage, clientId);
+    this.addMessage(this.activeChat.id, aiResponse, false);
   },
   
   // Show cycling typing indicator with promise-based timing
@@ -373,7 +272,7 @@ const ChatManager = {
           this.hideTypingIndicator();
           resolve();
         }
-      }, 2500); // 2.5 seconds per step
+      }, 10000); // 2.5 seconds per step
       
       // Store interval for cleanup
       this.typingInterval = interval;
