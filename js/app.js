@@ -1,75 +1,36 @@
-// AssistantAI 2.0 - Premium Enterprise Application
+// AssistantAI 2.0 - Premium Enterprise Application (Webhook Version)
 class AssistantAI {
   constructor() {
-    this.api = new VertesiaAPI();
     this.activeChat = null;
     this.activeChatId = null;
     this.messages = {};
     this.viewMode = 'active'; // 'active' or 'archived'
-    
+
     this.init();
   }
-  
+
   init() {
     this.setupEventListeners();
-    this.updateAPIStatus();
     this.loadArchivedChats();
-    
-    // Show incoming call after delay
-    setTimeout(() => this.showIncomingCall(), CONFIG.demo.incomingCallDelay);
+    setTimeout(() => this.showIncomingCall(), 2000);
   }
-  
+
   setupEventListeners() {
-    // Accept client
-    document.getElementById('accept-client-btn')?.addEventListener('click', () => {
-      this.acceptClient();
-    });
-    
-    // Send message
+    document.getElementById('accept-client-btn')?.addEventListener('click', () => this.acceptClient());
     const sendBtn = document.getElementById('send-btn');
     const input = document.getElementById('message-input');
-    
     sendBtn?.addEventListener('click', () => this.sendMessage());
-    
-    input?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') this.sendMessage();
-    });
+    input?.addEventListener('keypress', (e) => { if (e.key === 'Enter') this.sendMessage(); });
   }
-  
-  updateAPIStatus() {
-    const statusEl = document.getElementById('api-status');
-    const statusDot = statusEl.querySelector('.status-dot');
-    const statusText = statusEl.querySelector('.status-text');
-    const statusSubtext = statusEl.querySelector('.status-subtext');
-    
-    if (this.api.configured) {
-      statusDot.className = 'status-dot connected';
-      statusText.textContent = 'Live API Connected';
-      statusSubtext.textContent = 'Vertesia Agent v2.0';
-    } else {
-      statusDot.className = 'status-dot demo';
-      statusText.textContent = 'Demo Mode';
-      statusSubtext.textContent = 'Sample Responses';
-    }
-  }
-  
+
   loadArchivedChats() {
     const archivedList = document.getElementById('archived-chats');
     const chenData = CONFIG.clients['eleanor-chen'];
-    
     const archivedItem = document.createElement('div');
     archivedItem.className = 'chat-item archived';
     archivedItem.dataset.chatId = 'eleanor-chen';
     archivedItem.innerHTML = `
-      <div class="chat-avatar">
-        <span>${chenData.avatar}</span>
-        <div class="archived-indicator">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <path d="M12 2v20M2 12h20"/>
-            <circle cx="12" cy="12" r="10"/>
-          </svg>
-        </div>
-      </div>
+      <div class="chat-avatar"><span>${chenData.avatar}</span></div>
       <div class="chat-details">
         <div class="chat-name">${chenData.name}</div>
         <div class="chat-preview">403(b) loan consultation</div>
@@ -77,166 +38,93 @@ class AssistantAI {
       <div class="chat-meta">
         <div class="chat-time">1h ago</div>
         <div class="chat-status">Completed</div>
-      </div>
-    `;
-    
+      </div>`;
     archivedItem.addEventListener('click', () => this.viewArchivedChat('eleanor-chen'));
     archivedList.appendChild(archivedItem);
   }
-  
+
   viewArchivedChat(clientId) {
     const client = CONFIG.clients[clientId];
     if (!client || client.status !== 'archived') return;
-    
-    console.log('Viewing archived chat:', clientId);
-    
     this.viewMode = 'archived';
     this.activeChat = client;
     this.activeChatId = clientId;
-    
-    // Hide welcome, show chat
     document.getElementById('welcome-state').style.display = 'none';
     document.getElementById('chat-interface').style.display = 'flex';
-    
-    // Update UI for archived mode
     document.getElementById('client-name').textContent = client.name;
-    document.getElementById('client-details').textContent = 
-      `${client.company} • ${client.accountType}`;
+    document.getElementById('client-details').textContent = `${client.company} • ${client.accountType}`;
     document.getElementById('avatar-text').textContent = client.avatar;
     document.getElementById('client-id').textContent = client.clientId;
     document.getElementById('client-age').textContent = `Age ${client.age}`;
-    
-    // Hide input for archived chats
     document.getElementById('input-container').style.display = 'none';
     document.getElementById('archived-notice').style.display = 'flex';
-    
-    // Load archived messages
     this.loadArchivedMessages();
-    
-    // Update sidebar selection
     this.updateSidebarSelection(clientId);
   }
-  
+
   updateSidebarSelection(selectedId) {
-    // Remove active class from all items
-    document.querySelectorAll('.chat-item').forEach(item => {
-      item.classList.remove('active');
-    });
-    
-    // Add active class to selected item
+    document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
     const selectedItem = document.querySelector(`[data-chat-id="${selectedId}"]`);
-    if (selectedItem) {
-      selectedItem.classList.add('active');
-    }
+    if (selectedItem) selectedItem.classList.add('active');
   }
-  
+
   loadArchivedMessages() {
     const chatMessages = document.getElementById('chat-messages');
     chatMessages.innerHTML = '';
-    
-    // Add context message
     const contextHtml = `
       <div class="context-message archived">
-        <div class="context-header">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <polyline points="9 11 12 14 22 4"/>
-          </svg>
-          Archived Consultation - ${new Date(CONFIG.archivedConversation.messages[0].timestamp).toLocaleDateString()}
-        </div>
+        <div class="context-header">Archived Consultation - ${new Date(CONFIG.archivedConversation.messages[0].timestamp).toLocaleDateString()}</div>
         <div class="context-details">
-          <div class="context-item">
-            <span class="label">Participant:</span>
-            <span class="value">${this.activeChat.name}</span>
-          </div>
-          <div class="context-item">
-            <span class="label">Balance:</span>
-            <span class="value">${this.activeChat.balance}</span>
-          </div>
-          <div class="context-item">
-            <span class="label">Outcome:</span>
-            <span class="value">Loan inquiry resolved</span>
-          </div>
+          <div class="context-item"><span class="label">Participant:</span><span class="value">${this.activeChat.name}</span></div>
+          <div class="context-item"><span class="label">Balance:</span><span class="value">${this.activeChat.balance}</span></div>
+          <div class="context-item"><span class="label">Outcome:</span><span class="value">Loan inquiry resolved</span></div>
         </div>
-      </div>
-    `;
-    
+      </div>`;
     chatMessages.insertAdjacentHTML('beforeend', contextHtml);
-    
-    // Add archived messages
     CONFIG.archivedConversation.messages.forEach(msg => {
-      this.addArchivedMessage(msg.content, msg.isUser, msg.timestamp);
+      this.addArchivedMessage(msg.content, msg.isUser, new Date(msg.timestamp));
     });
   }
-  
+
   showIncomingCall() {
     const banner = document.getElementById('client-banner');
     banner.style.display = 'block';
-    
-    setTimeout(() => {
-      banner.classList.add('show');
-    }, 100);
+    setTimeout(() => banner.classList.add('show'), 100);
   }
-  
+
   acceptClient() {
     const banner = document.getElementById('client-banner');
     banner.classList.remove('show');
-    
     setTimeout(() => {
       banner.style.display = 'none';
       this.startConsultation();
     }, 300);
   }
-  
+
   startConsultation() {
     this.viewMode = 'active';
     this.activeChat = CONFIG.clients['james-jackson'];
     this.activeChatId = 'james-jackson';
-    
-    // Initialize messages for this chat
-    if (!this.messages[this.activeChatId]) {
-      this.messages[this.activeChatId] = [];
-    }
-    
-    // Hide welcome, show chat
+    if (!this.messages[this.activeChatId]) this.messages[this.activeChatId] = [];
     document.getElementById('welcome-state').style.display = 'none';
     document.getElementById('chat-interface').style.display = 'flex';
-    
-    // Show input for active chats
     document.getElementById('input-container').style.display = 'block';
     document.getElementById('archived-notice').style.display = 'none';
-    
-    // Update UI with client info
     document.getElementById('client-name').textContent = this.activeChat.name;
-    document.getElementById('client-details').textContent = 
-      `${this.activeChat.company} • ${this.activeChat.accountType}`;
+    document.getElementById('client-details').textContent = `${this.activeChat.company} • ${this.activeChat.accountType}`;
     document.getElementById('avatar-text').textContent = this.activeChat.avatar;
     document.getElementById('client-id').textContent = this.activeChat.clientId;
     document.getElementById('client-age').textContent = `Age ${this.activeChat.age}`;
-    
-    // Add to sidebar if not already there
     this.addToSidebar();
-    
-    // Clear chat and show initial context message
     const chatMessages = document.getElementById('chat-messages');
     chatMessages.innerHTML = '';
     this.addContextMessage();
-    
-    // Re-render existing messages if any
-    if (this.messages[this.activeChatId].length > 0) {
-      this.messages[this.activeChatId].forEach(msg => {
-        this.addMessage(msg.content, msg.isUser, false);
-      });
-    }
-    
-    // Focus input
+    this.messages[this.activeChatId].forEach(msg => this.addMessage(msg.content, msg.isUser, false));
     document.getElementById('message-input').focus();
   }
-  
+
   addToSidebar() {
     const chatList = document.getElementById('active-chats');
-    
-    // Check if already exists
     let existingItem = document.querySelector(`[data-chat-id="james-jackson"]`);
     if (!existingItem) {
       existingItem = document.createElement('div');
@@ -244,151 +132,82 @@ class AssistantAI {
       existingItem.dataset.chatId = 'james-jackson';
       chatList.appendChild(existingItem);
     }
-    
     existingItem.className = 'chat-item active';
     existingItem.innerHTML = `
-      <div class="chat-avatar">
-        <span>${this.activeChat.avatar}</span>
-        <div class="active-indicator"></div>
-      </div>
-      <div class="chat-details">
-        <div class="chat-name">${this.activeChat.name}</div>
-        <div class="chat-preview">Active consultation</div>
-      </div>
-      <div class="chat-meta">
-        <div class="chat-time">Now</div>
-        <div class="chat-status live">Live</div>
-      </div>
-    `;
-    
-    // Add click handler to return to active chat
+      <div class="chat-avatar"><span>${this.activeChat.avatar}</span><div class="active-indicator"></div></div>
+      <div class="chat-details"><div class="chat-name">${this.activeChat.name}</div><div class="chat-preview">Active consultation</div></div>
+      <div class="chat-meta"><div class="chat-time">Now</div><div class="chat-status live">Live</div></div>`;
     existingItem.addEventListener('click', () => {
-      if (this.viewMode !== 'active' || this.activeChatId !== 'james-jackson') {
-        this.startConsultation();
-      }
+      if (this.viewMode !== 'active' || this.activeChatId !== 'james-jackson') this.startConsultation();
     });
-    
     this.updateSidebarSelection('james-jackson');
   }
-  
+
   addContextMessage() {
     const contextHtml = `
       <div class="context-message premium">
-        <div class="context-header">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
-          Client Context Synchronized
-        </div>
+        <div class="context-header">Client Context Synchronized</div>
         <div class="context-grid">
-          <div class="context-item">
-            <span class="label">Participant ID</span>
-            <span class="value">${this.activeChat.clientId}</span>
-          </div>
-          <div class="context-item">
-            <span class="label">Plan Type</span>
-            <span class="value">${this.activeChat.accountType}</span>
-          </div>
-          <div class="context-item">
-            <span class="label">Current Balance</span>
-            <span class="value">${this.activeChat.balance}</span>
-          </div>
-          <div class="context-item">
-            <span class="label">Vesting Status</span>
-            <span class="value">100% Vested</span>
-          </div>
+          <div class="context-item"><span class="label">Participant ID</span><span class="value">${this.activeChat.clientId}</span></div>
+          <div class="context-item"><span class="label">Plan Type</span><span class="value">${this.activeChat.accountType}</span></div>
+          <div class="context-item"><span class="label">Current Balance</span><span class="value">${this.activeChat.balance}</span></div>
+          <div class="context-item"><span class="label">Vesting Status</span><span class="value">100% Vested</span></div>
         </div>
-      </div>
-    `;
-    
+      </div>`;
     this.appendToChat(contextHtml);
   }
-  
+
   async sendMessage() {
     const input = document.getElementById('message-input');
     const message = input.value.trim();
-    
     if (!message || this.viewMode !== 'active') return;
-    
-    console.log('Sending message:', message);
-    
-    // Clear input
     input.value = '';
-    
-    // Add user message
     this.addMessage(message, true, true);
-    
-    // Show typing indicator
     this.showTyping();
-    
-    // Get AI response
     try {
-      const response = await this.api.sendMessage(message, this.activeChat);
-      console.log('Got response:', response);
-      
-      // Remove typing indicator
+      const response = await fetch('https://your-n8n-webhook-url.com/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      if (!response.ok) throw new Error('Request failed');
+      const result = await response.json();
       this.hideTyping();
-      
-      // Add AI response
-      this.addMessage(response.content, false, true);
-    } catch (error) {
-      console.error('Error getting response:', error);
+      this.addMessage(result.result || result.message || JSON.stringify(result), false, true);
+    } catch (err) {
+      console.error('Webhook error:', err);
       this.hideTyping();
-      this.addMessage('Sorry, there was an error processing your request. Please try again.', false, true);
+      this.addMessage('Sorry, there was an error processing your request.', false, true);
     }
   }
-  
+
   addMessage(content, isUser, saveToHistory = false) {
     const messageHtml = `
       <div class="message ${isUser ? 'user-message' : 'ai-message'}">
-        ${isUser ? '' : `
-          <div class="message-avatar">
-            <svg width="20" height="20" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6">
-              <path d="M50,10 C70,10 85,25 85,45 C85,65 70,80 50,80 C30,80 15,65 15,45 C15,30 25,20 40,20 C50,20 55,25 55,35 C55,45 50,50 40,50 C35,50 32,47 32,42"/>
-            </svg>
-          </div>
-        `}
         <div class="message-content">
           <div class="message-text">${this.formatContent(content)}</div>
           <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
         </div>
         ${isUser ? '<div class="message-avatar user-avatar">FA</div>' : ''}
-      </div>
-    `;
-    
+      </div>`;
     this.appendToChat(messageHtml);
-    
-    // Save to history if needed
     if (saveToHistory && this.activeChatId) {
-      this.messages[this.activeChatId].push({ 
-        content, 
-        isUser, 
-        timestamp: new Date() 
-      });
+      this.messages[this.activeChatId].push({ content, isUser, timestamp: new Date() });
     }
   }
-  
+
   addArchivedMessage(content, isUser, timestamp) {
     const messageHtml = `
       <div class="message ${isUser ? 'user-message' : 'ai-message'} archived">
-        ${isUser ? '' : `
-          <div class="message-avatar">
-            <svg width="20" height="20" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6">
-              <path d="M50,10 C70,10 85,25 85,45 C85,65 70,80 50,80 C30,80 15,65 15,45 C15,30 25,20 40,20 C50,20 55,25 55,35 C55,45 50,50 40,50 C35,50 32,47 32,42"/>
-            </svg>
-          </div>
-        `}
         <div class="message-content">
           <div class="message-text">${this.formatContent(content)}</div>
           <div class="message-time">${timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
         </div>
         ${isUser ? '<div class="message-avatar user-avatar">EC</div>' : ''}
-      </div>
-    `;
-    
+      </div>`;
     this.appendToChat(messageHtml);
   }
-  
+
   formatContent(content) {
     return content
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -396,34 +215,23 @@ class AssistantAI {
       .replace(/\n/g, '<br>')
       .replace(/^- /gm, '• ');
   }
-  
+
   showTyping() {
     const typingHtml = `
       <div class="typing-indicator" id="typing-indicator">
-        <div class="message-avatar">
-          <svg width="20" height="20" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6">
-            <path d="M50,10 C70,10 85,25 85,45 C85,65 70,80 50,80 C30,80 15,65 15,45 C15,30 25,20 40,20 C50,20 55,25 55,35 C55,45 50,50 40,50 C35,50 32,47 32,42"/>
-          </svg>
-        </div>
         <div class="typing-bubble">
-          <div class="typing-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
+          <div class="typing-dots"><span></span><span></span><span></span></div>
           <div class="typing-text">Analyzing request...</div>
         </div>
-      </div>
-    `;
-    
+      </div>`;
     this.appendToChat(typingHtml);
   }
-  
+
   hideTyping() {
     const typing = document.getElementById('typing-indicator');
     if (typing) typing.remove();
   }
-  
+
   appendToChat(html) {
     const chatMessages = document.getElementById('chat-messages');
     chatMessages.insertAdjacentHTML('beforeend', html);
@@ -431,7 +239,6 @@ class AssistantAI {
   }
 }
 
-// Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
   window.assistantAI = new AssistantAI();
 });
