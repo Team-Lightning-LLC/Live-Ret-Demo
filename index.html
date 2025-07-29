@@ -8,48 +8,8 @@
   <link rel="stylesheet" href="css/main.css" />
 </head>
 <body>
-  <div class="sidebar">
-    <div class="logo">
-      <h1>AssistantAI</h1>
-      <span class="enterprise-badge">Enterprise</span>
-    </div>
-    <div class="active-consultations">
-      <h2>Active Consultations</h2>
-      <ul>
-        <li class="active">1</li>
-      </ul>
-    </div>
-    <div class="recent-history">
-      <h2>Recent History</h2>
-      <ul>
-        <li>1</li>
-      </ul>
-    </div>
-    <div class="agent-status">Initializing... <span>Vertesia Agent v2.0</span></div>
-  </div>
-
+  <!-- UI stays the same -->
   <div class="main-content">
-    <div class="client-banner">
-      <div>
-        <span class="priority-dot"></span> INCOMING PRIORITY CLIENT
-      </div>
-      <div class="client-info">
-        <div class="client-name">
-          <div class="client-initials">JJ</div>
-          <div>
-            <strong>James Jackson</strong><br />
-            Texas University • UT Saver TSA 403(b)
-          </div>
-        </div>
-        <div class="client-tags">
-          <span class="tag">High Value</span>
-          <span class="tag">35 Years</span>
-          <span class="tag">$127K Balance</span>
-        </div>
-      </div>
-      <button id="accept-btn" class="accept-btn">✓ Accept Consultation</button>
-    </div>
-
     <div class="chat-interface" id="chat-interface">
       <div class="chat-messages" id="chat-messages"></div>
       <div class="message-input-container">
@@ -70,72 +30,66 @@
         </div>
       </div>
     </div>
-
-    <div class="footer">
-      <span>Powered by Vertesia Agent Intelligence</span>
-    </div>
   </div>
 
+  <!-- JS handling -->
   <script>
-    const messageInput = document.getElementById("message-input");
-    const sendBtn = document.getElementById("send-btn");
-    const chatMessages = document.getElementById("chat-messages");
-    const acceptBtn = document.getElementById("accept-btn");
-    const banner = document.querySelector(".client-banner");
+    document.addEventListener("DOMContentLoaded", () => {
+      const chatContainer = document.getElementById("chat-messages");
+      const messageInput = document.getElementById("message-input");
+      const sendBtn = document.getElementById("send-btn");
 
-    acceptBtn.addEventListener("click", () => {
-      banner.style.display = "none";
-    });
-
-    function appendMessage(content, sender = "user") {
-      const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      const wrapper = document.createElement("div");
-      wrapper.className = sender === "user" ? "message user-message" : "message ai-message";
-      wrapper.innerHTML = `
-        <div class="message-content">
-          <div class="message-text">${content}</div>
-          <div class="message-time">${time}</div>
-        </div>`;
-      chatMessages.appendChild(wrapper);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    async function sendMessage() {
-      const text = messageInput.value.trim();
-      if (!text) return;
-      messageInput.value = "";
-      appendMessage(text, "user");
-
-      const loading = document.createElement("div");
-      loading.id = "typing";
-      loading.innerHTML = `<div class="typing-text">Analyzing request...</div>`;
-      chatMessages.appendChild(loading);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-
-      try {
-        const res = await fetch("https://muinf.app.n8n.cloud/webhook-test/62377baa-ee4e-4802-9377-ccc0114a159b", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text }),
-        });
-
-        const data = await res.json();
-        loading.remove();
-
-        const reply = typeof data === "string"
-          ? data
-          : data.reply || data.message || JSON.stringify(data);
-
-        appendMessage(reply, "ai");
-      } catch (err) {
-        loading.remove();
-        appendMessage("Sorry, there was an error processing your request. Please try again.", "ai");
+      function appendMessage(content, sender = "user") {
+        const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const wrapper = document.createElement("div");
+        wrapper.className = sender === "user" ? "message user-message" : "message ai-message";
+        wrapper.innerHTML = `
+          <div class="message-content">
+            <div class="message-text">${content}</div>
+            <div class="message-time">${time}</div>
+          </div>`;
+        chatContainer.appendChild(wrapper);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
       }
-    }
 
-    sendBtn.addEventListener("click", sendMessage);
-    messageInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
+      async function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+        messageInput.value = "";
+        appendMessage(text, "user");
+
+        // Typing indicator
+        const typing = document.createElement("div");
+        typing.id = "typing";
+        typing.innerHTML = `<div class="typing-text">Analyzing request...</div>`;
+        chatContainer.appendChild(typing);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        try {
+          const res = await fetch("https://muinf.app.n8n.cloud/webhook-test/62377baa-ee4e-4802-9377-ccc0114a159b", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+          });
+
+          const data = await res.json();
+          typing.remove();
+
+          const reply = typeof data === "string"
+            ? data
+            : data.reply || data.content || JSON.stringify(data);
+
+          appendMessage(reply, "ai");
+        } catch (err) {
+          typing.remove();
+          appendMessage("Error processing request.", "ai");
+        }
+      }
+
+      sendBtn.addEventListener("click", sendMessage);
+      messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
     });
   </script>
 </body>
