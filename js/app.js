@@ -3,7 +3,8 @@ class AssistantAI {
   constructor() {
     this.api = new VertesiaAPI();
     this.activeChat = null;
-    this.messages = [];
+    this.activeChatId = null;
+    this.messages = {};
     this.viewMode = 'active'; // 'active' or 'archived'
     
     this.init();
@@ -58,6 +59,7 @@ class AssistantAI {
     
     const archivedItem = document.createElement('div');
     archivedItem.className = 'chat-item archived';
+    archivedItem.dataset.chatId = 'eleanor-chen';
     archivedItem.innerHTML = `
       <div class="chat-avatar">
         <span>${chenData.avatar}</span>
@@ -86,8 +88,11 @@ class AssistantAI {
     const client = CONFIG.clients[clientId];
     if (!client || client.status !== 'archived') return;
     
+    console.log('Viewing archived chat:', clientId);
+    
     this.viewMode = 'archived';
     this.activeChat = client;
+    this.activeChatId = clientId;
     
     // Hide welcome, show chat
     document.getElementById('welcome-state').style.display = 'none';
@@ -109,10 +114,20 @@ class AssistantAI {
     this.loadArchivedMessages();
     
     // Update sidebar selection
+    this.updateSidebarSelection(clientId);
+  }
+  
+  updateSidebarSelection(selectedId) {
+    // Remove active class from all items
     document.querySelectorAll('.chat-item').forEach(item => {
       item.classList.remove('active');
     });
-    event.currentTarget.classList.add('active');
+    
+    // Add active class to selected item
+    const selectedItem = document.querySelector(`[data-chat-id="${selectedId}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('active');
+    }
   }
   
   loadArchivedMessages() {
@@ -176,6 +191,12 @@ class AssistantAI {
   startConsultation() {
     this.viewMode = 'active';
     this.activeChat = CONFIG.clients['james-jackson'];
+    this.activeChatId = 'james-jackson';
+    
+    // Initialize messages for this chat
+    if (!this.messages[this.activeChatId]) {
+      this.messages[this.activeChatId] = [];
+    }
     
     // Hide welcome, show chat
     document.getElementById('welcome-state').style.display = 'none';
@@ -193,11 +214,20 @@ class AssistantAI {
     document.getElementById('client-id').textContent = this.activeChat.clientId;
     document.getElementById('client-age').textContent = `Age ${this.activeChat.age}`;
     
-    // Add to sidebar
+    // Add to sidebar if not already there
     this.addToSidebar();
     
-    // Show initial context message
+    // Clear chat and show initial context message
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = '';
     this.addContextMessage();
+    
+    // Re-render existing messages if any
+    if (this.messages[this.activeChatId].length > 0) {
+      this.messages[this.activeChatId].forEach(msg => {
+        this.addMessage(msg.content, msg.isUser, false);
+      });
+    }
     
     // Focus input
     document.getElementById('message-input').focus();
@@ -205,11 +235,18 @@ class AssistantAI {
   
   addToSidebar() {
     const chatList = document.getElementById('active-chats');
-    chatList.innerHTML = ''; // Clear existing
     
-    const chatItem = document.createElement('div');
-    chatItem.className = 'chat-item active';
-    chatItem.innerHTML = `
+    // Check if already exists
+    let existingItem = document.querySelector(`[data-chat-id="james-jackson"]`);
+    if (!existingItem) {
+      existingItem = document.createElement('div');
+      existingItem.className = 'chat-item';
+      existingItem.dataset.chatId = 'james-jackson';
+      chatList.appendChild(existingItem);
+    }
+    
+    existingItem.className = 'chat-item active';
+    existingItem.innerHTML = `
       <div class="chat-avatar">
         <span>${this.activeChat.avatar}</span>
         <div class="active-indicator"></div>
@@ -223,13 +260,20 @@ class AssistantAI {
         <div class="chat-status live">Live</div>
       </div>
     `;
-    chatList.appendChild(chatItem);
+    
+    // Add click handler to return to active chat
+    existingItem.addEventListener('click', () => {
+      if (this.viewMode !== 'active' || this.activeChatId !== 'james-jackson') {
+        this.startConsultation();
+      }
+    });
+    
+    this.updateSidebarSelection('james-jackson');
   }
   
   addContextMessage() {
     const contextHtml = `
       <div class="context-message premium">
-        <div class="context-shine"></div>
         <div class="context-header">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -266,26 +310,35 @@ class AssistantAI {
     
     if (!message || this.viewMode !== 'active') return;
     
+    console.log('Sending message:', message);
+    
     // Clear input
     input.value = '';
     
     // Add user message
-    this.addMessage(message, true);
+    this.addMessage(message, true, true);
     
     // Show typing indicator
     this.showTyping();
     
     // Get AI response
-    const response = await this.api.sendMessage(message, this.activeChat);
-    
-    // Remove typing indicator
-    this.hideTyping();
-    
-    // Add AI response
-    this.addMessage(response.content, false);
+    try {
+      const response = await this.api.sendMessage(message, this.activeChat);
+      console.log('Got response:', response);
+      
+      // Remove typing indicator
+      this.hideTyping();
+      
+      // Add AI response
+      this.addMessage(response.content, false, true);
+    } catch (error) {
+      console.error('Error getting response:', error);
+      this.hideTyping();
+      this.addMessage('Sorry, there was an error processing your request. Please try again.', false, true);
+    }
   }
   
-  addMessage(content, isUser) {
+  addMessage(content, isUser, saveToHistory = false) {
     const messageHtml = `
       <div class="message ${isUser ? 'user-message' : 'ai-message'}">
         ${isUser ? '' : `
@@ -304,7 +357,15 @@ class AssistantAI {
     `;
     
     this.appendToChat(messageHtml);
-    this.messages.push({ content, isUser, timestamp: new Date() });
+    
+    // Save to history if needed
+    if (saveToHistory && this.activeChatId) {
+      this.messages[this.activeChatId].push({ 
+        content, 
+        isUser, 
+        timestamp: new Date() 
+      });
+    }
   }
   
   addArchivedMessage(content, isUser, timestamp) {
