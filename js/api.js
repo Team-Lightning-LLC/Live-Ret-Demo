@@ -42,7 +42,7 @@ class VertesiaAPI {
           environment: CONFIG.api.environmentId,
           model: "publishers/anthropic/models/claude-3-7-sonnet"
         },
-        stream: false // Set to true if you want streaming responses
+        stream: true // Set to true if you want streaming responses
       };
       
       console.log('Request to /runs:', requestBody);
