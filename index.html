@@ -8,30 +8,52 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-  <!-- Streamlined Sidebar -->
+  <!-- Premium Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon">
-          <svg width="24" height="24" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="8">
+          <svg width="24" height="24" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6">
             <path d="M20,80 L50,20 L80,80 M30,60 L70,60"/>
           </svg>
         </div>
         <div class="logo-text">AssistantAI</div>
+        <div class="logo-badge">Enterprise</div>
       </div>
     </div>
     
+    <!-- Active Consultations -->
     <div class="consultations-section">
-      <div class="section-title">Active Consultations</div>
-      <div class="chat-list" id="chat-list">
+      <div class="section-header">
+        <span class="section-title">Active Consultations</span>
+        <span class="section-count">1</span>
+      </div>
+      <div class="chat-list" id="active-chats">
         <!-- Dynamically populated -->
+      </div>
+    </div>
+    
+    <!-- Archived Consultations -->
+    <div class="consultations-section archived">
+      <div class="section-header">
+        <span class="section-title">Recent History</span>
+        <span class="section-count">1</span>
+      </div>
+      <div class="chat-list" id="archived-chats">
+        <!-- Dr. Chen will appear here -->
       </div>
     </div>
     
     <div class="sidebar-footer">
       <div class="api-status" id="api-status">
-        <div class="status-dot"></div>
-        <span class="status-text">Initializing...</span>
+        <div class="status-indicator">
+          <div class="status-dot"></div>
+          <div class="status-ring"></div>
+        </div>
+        <div class="status-details">
+          <span class="status-text">Initializing...</span>
+          <span class="status-subtext">Vertesia Agent v2.0</span>
+        </div>
       </div>
     </div>
   </div>
@@ -40,16 +62,25 @@
   <div class="main-content">
     <!-- Incoming Client Banner -->
     <div class="client-banner" id="client-banner" style="display: none;">
+      <div class="banner-glow"></div>
       <div class="banner-content">
         <div class="client-indicator">
           <div class="pulse-dot"></div>
-          <span>Incoming Client</span>
+          <span>Incoming Priority Client</span>
         </div>
         <div class="client-preview">
-          <div class="client-avatar">JJ</div>
+          <div class="client-avatar">
+            <span>JJ</span>
+            <div class="avatar-ring"></div>
+          </div>
           <div class="client-details">
             <h3>James Jackson</h3>
             <p>Texas University • UT Saver TSA 403(b)</p>
+            <div class="client-tags">
+              <span class="tag">High Value</span>
+              <span class="tag">35 Years</span>
+              <span class="tag">$127K Balance</span>
+            </div>
           </div>
         </div>
       </div>
@@ -58,40 +89,73 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
-          Accept
+          Accept Consultation
         </button>
       </div>
     </div>
     
     <!-- Welcome State -->
     <div class="welcome-state" id="welcome-state">
+      <div class="welcome-background">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+      </div>
       <div class="welcome-content">
         <div class="welcome-icon">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
             <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-            <path d="M2 17l10 5 10-5"></path>
-            <path d="M2 12l10 5 10-5"></path>
+            <path d="M2 17l10 5 10-5" opacity="0.6"></path>
+            <path d="M2 12l10 5 10-5" opacity="0.3"></path>
           </svg>
         </div>
-        <h2>Enterprise Financial Intelligence</h2>
-        <p class="subtitle">Transforming complexity into clarity.</p>
+        <h1>Enterprise Financial Intelligence</h1>
+        <p class="subtitle">Transforming complexity into clarity with AI-powered precision.</p>
+        <div class="feature-grid">
+          <div class="feature">
+            <div class="feature-icon">✨</div>
+            <span>Real-time Context</span>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🔒</div>
+            <span>Compliant Guidance</span>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">📊</div>
+            <span>Intelligent Analysis</span>
+          </div>
+        </div>
       </div>
     </div>
     
     <!-- Chat Interface -->
     <div class="chat-interface" id="chat-interface" style="display: none;">
       <div class="chat-header">
-        <div class="client-info">
-          <div class="client-avatar-small">JJ</div>
-          <div class="client-meta">
-            <h3 id="client-name">James Jackson</h3>
-            <p id="client-details">Texas University • UT Saver TSA 403(b)</p>
+        <div class="header-content">
+          <div class="client-info">
+            <div class="client-avatar-small">
+              <span id="avatar-text">JJ</span>
+              <div class="avatar-status"></div>
+            </div>
+            <div class="client-meta">
+              <h3 id="client-name">James Jackson</h3>
+              <p id="client-details">Texas University • UT Saver TSA 403(b)</p>
+            </div>
           </div>
-        </div>
-        <div class="context-indicator">
-          <span class="context-badge">P00051</span>
-          <span class="context-badge">Age 35</span>
-          <span class="context-badge">Live Data</span>
+          <div class="context-indicator">
+            <span class="context-badge premium">
+              <span class="badge-icon">👤</span>
+              <span id="client-id">P00051</span>
+            </span>
+            <span class="context-badge">
+              <span class="badge-icon">📅</span>
+              <span id="client-age">Age 35</span>
+            </span>
+            <span class="context-badge live">
+              <span class="badge-icon">🔴</span>
+              <span>Live Data</span>
+            </span>
+          </div>
         </div>
       </div>
       
@@ -99,7 +163,10 @@
         <!-- Messages render here -->
       </div>
       
-      <div class="message-input-container">
+      <div class="message-input-container" id="input-container">
+        <div class="input-enhancement">
+          <span>Powered by Vertesia Agent Intelligence</span>
+        </div>
         <div class="input-wrapper">
           <input 
             type="text" 
@@ -114,6 +181,17 @@
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
           </button>
+        </div>
+      </div>
+      
+      <!-- Archived View Notice -->
+      <div class="archived-notice" id="archived-notice" style="display: none;">
+        <div class="notice-content">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M2 12h20"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          <span>This is an archived consultation. Viewing in read-only mode.</span>
         </div>
       </div>
     </div>
