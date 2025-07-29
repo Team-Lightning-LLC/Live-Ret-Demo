@@ -2,9 +2,10 @@
 const CONFIG = {
   // Vertesia API Settings
   api: {
-    endpoint: '', // Your Vertesia endpoint
-    key: '', // Your API key
-    agentId: '' // Your agent ID
+    endpoint: 'https://api.vertesia.io/api/v1',
+    key: 'sk-773875c9d651f7b4fadb1a491577c017',
+    interactionId: '682cd4f06d3140ec92cf2b2b', // Your RetAgentV2 interaction
+    environmentId: '681915c6a01fb262a410c161'
   },
   
   // Client Data
@@ -35,13 +36,13 @@ const CONFIG = {
     }
   },
   
-  // Archived conversation for Dr. Chen
+  // Archived conversation remains the same...
   archivedConversation: {
     messages: [
       {
         content: "I'm looking to borrow from my 403(b) account. What are my options?",
         isUser: true,
-        timestamp: new Date(Date.now() - 3600000) // 1 hour ago
+        timestamp: new Date(Date.now() - 3600000)
       },
       {
         content: `Based on Dr. Eleanor Chen's Harvard TDA 403(b) plan:
@@ -95,8 +96,13 @@ const CONFIG = {
     ]
   },
   
-  // Demo Settings
   demo: {
-    incomingCallDelay: 3000 // Show incoming call after 3 seconds
+    incomingCallDelay: 3000
   }
 };
+
+console.log('CONFIG loaded:', {
+  hasEndpoint: !!CONFIG.api.endpoint,
+  hasKey: !!CONFIG.api.key,
+  hasInteractionId: !!CONFIG.api.interactionId
+});
